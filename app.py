@@ -6,6 +6,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 
 # Load model
+model = load_model(MODEL_PATH)
+
 FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"   # <-- paste your ID
 URL = f"https://drive.google.com/file/d/1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq/view?usp=drive_link={FILE_ID}"
 #/MODEL_PATH = "tomato_model.h5"
@@ -100,6 +102,7 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
+
 
 
 
