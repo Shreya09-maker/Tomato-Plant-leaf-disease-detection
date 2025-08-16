@@ -12,22 +12,22 @@ import gdown
 import os
 
 # ------------------ Paths ------------------
+# 💡 Change this path if you're running locally with a real folder
+DATASET_FOLDER = r"C:\Users\shrey\OneDrive\Desktop\PlantVillage"  # <-- ✅ Fix: raw string prevents backslash errors
+
 MODEL_FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
 MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
-
 FEATURE_PATH = "tomato_leaf_feature.npy"
-DATASET_FOLDER =  r"C:\Users\shrey\OneDrive\Desktop\PlantVillage"
-  # Update this if your dataset is elsewhere
 
-# ------------------ Download & Load Disease Model ------------------
+# ------------------ Download Model if Missing ------------------
 if not os.path.exists(MODEL_PATH):
     with st.spinner("Downloading disease model..."):
         gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
 
 model = load_model(MODEL_PATH)
 
-# ------------------ Generate Tomato Leaf Feature if Missing ------------------
+# ------------------ Generate Tomato Leaf Feature ------------------
 def generate_leaf_feature():
     if not os.path.exists(DATASET_FOLDER):
         st.error(f"Dataset folder not found: {DATASET_FOLDER}")
@@ -45,6 +45,7 @@ def generate_leaf_feature():
 
     leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
     features_list = []
+
     for img_path in list_of_images:
         img = Image.open(img_path).convert('RGB').resize((224, 224))
         x = img_to_array(img)
@@ -56,12 +57,13 @@ def generate_leaf_feature():
     np.save(FEATURE_PATH, tomato_leaf_feature)
     return tomato_leaf_feature
 
-# ------------------ Load or Generate Feature ------------------
+# ------------------ Load or Regenerate Feature File ------------------
 if os.path.exists(FEATURE_PATH):
     try:
         tomato_leaf_feature = np.load(FEATURE_PATH, allow_pickle=False)
     except Exception as e:
         st.warning(f"Feature file is corrupted. Regenerating... ({e})")
+        os.remove(FEATURE_PATH)
         with st.spinner("Regenerating reference tomato leaf feature..."):
             tomato_leaf_feature = generate_leaf_feature()
 else:
@@ -95,7 +97,7 @@ def predict(image: Image.Image):
     predicted_index = np.argmax(preds)
     raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
-    confidence = max(raw_confidence, 90)  # Always show at least 90%
+    confidence = max(raw_confidence, 90)  # Display at least 90%
     return predicted_label, confidence
 
 # ------------------ Tomato Leaf Verification ------------------
@@ -149,6 +151,3 @@ st.markdown(
     "<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>",
     unsafe_allow_html=True
 )
-
-
-
