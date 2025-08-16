@@ -11,16 +11,28 @@ import uuid
 import gdown
 
 # ------------------ Download and Load Disease Model ------------------
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"  # Google Drive file ID
-URL = f"https://drive.google.com/uc?id={FILE_ID}"
+MODEL_FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
+MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
 if not os.path.exists(MODEL_PATH):
     with st.spinner("Downloading disease model..."):
-        gdown.download(URL, MODEL_PATH, quiet=False)
+        gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
 
 model = load_model(MODEL_PATH)
 
+# ------------------ Download Tomato Leaf Feature ------------------
+FEATURE_FILE_ID = "YOUR_FEATURE_FILE_ID"  # Add Google Drive file ID for tomato_leaf_feature.npy
+FEATURE_URL = f"https://drive.google.com/uc?id={FEATURE_FILE_ID}"
+FEATURE_PATH = "tomato_leaf_feature.npy"
+
+if not os.path.exists(FEATURE_PATH):
+    with st.spinner("Downloading reference tomato leaf feature..."):
+        gdown.download(FEATURE_URL, FEATURE_PATH, quiet=False)
+
+tomato_leaf_feature = np.load(FEATURE_PATH)
+
+# ------------------ Class Names ------------------
 class_names = [
     'Tomato___Bacterial_spot',
     'Tomato___Early_blight',
@@ -52,14 +64,6 @@ def predict(image: Image.Image):
 # ------------------ Tomato Leaf Detection ------------------
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
-FEATURE_FILE = "tomato_leaf_feature.npy"
-
-if not os.path.exists(FEATURE_FILE):
-    st.error("Reference tomato leaf feature missing. Add 'tomato_leaf_feature.npy' in the app folder.")
-    st.stop()
-
-tomato_leaf_feature = np.load(FEATURE_FILE)
-
 def is_tomato_leaf(image: Image.Image):
     image = image.convert('RGB').resize((224, 224))
     x = img_to_array(image)
@@ -67,10 +71,10 @@ def is_tomato_leaf(image: Image.Image):
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
     similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
-    return similarity > 0.7  # Only accept tomato leaf
+    return similarity > 0.7
 
 # ------------------ Dataset vs Live Detection ------------------
-DATASET_FOLDER = "PlantVillage/Tomato"  # Adjust your dataset path
+DATASET_FOLDER = "PlantVillage/Tomato"  # Change to your dataset folder
 
 def detect_image_source(image: Image.Image):
     uploaded_array = np.array(image.convert('RGB').resize((150, 150)))
@@ -107,4 +111,12 @@ if uploaded_file:
         predicted_label, confidence = predict(image)
         st.markdown(f"### Prediction: **{predicted_label.replace('_', ' ')}**")
         st.progress(min(int(confidence), 100))
-        s
+        st.markdown(f"#### Confidence: {confidence:.2f}%")
+        st.markdown(f"#### Source: {source}")
+    else:
+        st.error("❌ This is not a tomato leaf. Please upload a valid tomato leaf image.")
+else:
+    st.info("Please upload a tomato leaf image to start prediction.")
+
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
