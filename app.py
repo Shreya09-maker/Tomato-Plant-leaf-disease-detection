@@ -10,24 +10,54 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import os
 
-# ------------------ Download & Load Disease Model ------------------
+# ------------------ Paths ------------------
 MODEL_FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
 MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
+FEATURE_PATH = "tomato_leaf_feature.npy"
+DATASET_FOLDER = "PlantVillage/Tomato"  # Change to your dataset folder
+
+# ------------------ Download & Load Disease Model ------------------
 if not os.path.exists(MODEL_PATH):
     with st.spinner("Downloading disease model..."):
         gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
 
 model = load_model(MODEL_PATH)
 
-# ------------------ Load Tomato Leaf Feature ------------------
-FEATURE_PATH = "tomato_leaf_feature.npy"
-if not os.path.exists(FEATURE_PATH):
-    st.error("Reference tomato leaf feature missing! Please run 'generate_feature_from_dataset.py' first.")
-    st.stop()
+# ------------------ Generate Tomato Leaf Feature if missing ------------------
+def generate_leaf_feature():
+    if not os.path.exists(DATASET_FOLDER):
+        st.error(f"Dataset folder not found: {DATASET_FOLDER}")
+        st.stop()
 
-tomato_leaf_feature = np.load(FEATURE_PATH, allow_pickle=True)
+    list_of_images = []
+    for root, dirs, files in os.walk(DATASET_FOLDER):
+        for file in files:
+            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                list_of_images.append(os.path.join(root, file))
+    if len(list_of_images) == 0:
+        st.error(f"No images found in dataset folder: {DATASET_FOLDER}")
+        st.stop()
+
+    leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
+    features_list = []
+    for img_path in list_of_images:
+        img = Image.open(img_path).convert('RGB').resize((224,224))
+        x = img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+        features_list.append(leaf_detector.predict(x)[0])
+
+    tomato_leaf_feature = np.mean(features_list, axis=0)
+    np.save(FEATURE_PATH, tomato_leaf_feature)
+    return tomato_leaf_feature
+
+if os.path.exists(FEATURE_PATH):
+    tomato_leaf_feature = np.load(FEATURE_PATH)
+else:
+    with st.spinner("Generating reference tomato leaf feature..."):
+        tomato_leaf_feature = generate_leaf_feature()
 
 # ------------------ Class Names ------------------
 class_names = [
@@ -43,14 +73,13 @@ class_names = [
     'Tomato___healthy'
 ]
 
-# ------------------ Image Preprocessing ------------------
+# ------------------ Image Preprocessing & Prediction ------------------
 def preprocess_image(image: Image.Image):
     image = image.convert('RGB').resize((150, 150))
     img_array = img_to_array(image).astype('float32') / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# ------------------ Prediction ------------------
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
@@ -70,7 +99,7 @@ def is_tomato_leaf(image: Image.Image):
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
     similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
-    return similarity > 0.7  # threshold for tomato leaf
+    return similarity > 0.7
 
 # ------------------ Streamlit UI ------------------
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
