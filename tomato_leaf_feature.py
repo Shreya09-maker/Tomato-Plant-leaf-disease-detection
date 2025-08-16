@@ -7,10 +7,17 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 import os
 
-# Set your dataset path here
-DATASET_FOLDER = r"C:\Users\shrey\Downloads\New folder\PlantVillage"
+# ✅ STEP 1: SET CORRECT PATH (edit this if needed)
+DATASET_FOLDER = r"C:\PlantVillage"  # Move your folder here for simplicity
 
-# Collect all image file paths
+# ✅ STEP 2: CHECK IF FOLDER EXISTS
+print(f"Checking dataset path: {DATASET_FOLDER}")
+if not os.path.exists(DATASET_FOLDER):
+    raise FileNotFoundError(f"❌ Dataset folder not found: {DATASET_FOLDER}")
+else:
+    print("✅ Folder found. Extracting images...")
+
+# ✅ STEP 3: COLLECT IMAGES
 list_of_images = []
 for root, dirs, files in os.walk(DATASET_FOLDER):
     for file in files:
@@ -18,18 +25,13 @@ for root, dirs, files in os.walk(DATASET_FOLDER):
             list_of_images.append(os.path.join(root, file))
 
 if len(list_of_images) == 0:
-    raise ValueError(f"No images found in {DATASET_FOLDER}")
+    raise ValueError(f"❌ No images found in {DATASET_FOLDER}")
 
-# Load MobileNetV2 model without the classification head
+# ✅ STEP 4: LOAD MODEL
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
-features_list = []# Check if the folder exists before proceeding
-print(f"Checking dataset path: {DATASET_FOLDER}")
-print("Folder exists?", os.path.exists(DATASET_FOLDER))
-
-if not os.path.exists(DATASET_FOLDER):
-    raise FileNotFoundError(f"❌ Dataset folder not found: {DATASET_FOLDER}")
-
+# ✅ STEP 5: EXTRACT FEATURES
+features_list = []
 for path in list_of_images:
     img = Image.open(path).convert('RGB').resize((224, 224))
     x = img_to_array(img)
@@ -38,11 +40,7 @@ for path in list_of_images:
     features = leaf_detector.predict(x)[0]
     features_list.append(features)
 
-# Average all features to create a single vector
+# ✅ STEP 6: AVERAGE AND SAVE FEATURE VECTOR
 tomato_leaf_feature = np.mean(features_list, axis=0)
-
-# Save the average feature vector to a .npy file
 np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
-print("✅ tomato_leaf_feature.npy created successfully")
-
-
+print("✅ tomato_leaf_feature.npy saved successfully.")
