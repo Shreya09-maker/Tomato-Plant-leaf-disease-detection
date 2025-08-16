@@ -63,7 +63,7 @@ if os.path.exists(FEATURE_PATH):
         tomato_leaf_feature = np.load(FEATURE_PATH, allow_pickle=False)
     except Exception as e:
         st.warning(f"Feature file is corrupted. Regenerating... ({e})")
-        os.remove(FEATURE_PATH)
+        
         with st.spinner("Regenerating reference tomato leaf feature..."):
             tomato_leaf_feature = generate_leaf_feature()
 else:
@@ -151,3 +151,4 @@ st.markdown(
     "<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>",
     unsafe_allow_html=True
 )
+
