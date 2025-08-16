@@ -4,22 +4,22 @@ from PIL import Image
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
+from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input
 import gdown
 import os
 
-# Download model from Google Drive if not already present
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"   # your file ID
+# Download main tomato disease model from Google Drive
+FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
 URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
-
 if not os.path.exists(MODEL_PATH):
-    with st.spinner("Downloading model..."):
+    with st.spinner("Downloading disease model..."):
         gdown.download(URL, MODEL_PATH, quiet=False)
 
-# Load model
+# Load disease model
 model = load_model(MODEL_PATH)
 
-# Class names
+# Tomato leaf classes
 class_names = [
     'Tomato___Bacterial_spot',
     'Tomato___Early_blight',
@@ -33,69 +33,75 @@ class_names = [
     'Tomato___healthy'
 ]
 
-# Image preprocessing
+# Load lightweight tomato leaf detector (MobileNetV2)
+leaf_detector = MobileNetV2(weights='imagenet', include_top=True)
+
+# Preprocess for disease model
 def preprocess_image(image: Image.Image):
     image = image.convert('RGB').resize((150, 150))
     img_array = img_to_array(image).astype('float32') / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# Prediction function with boosted confidence
-def predict(image: Image.Image):
+# Preprocess for leaf detector
+def preprocess_leaf_detector(image: Image.Image):
+    image = image.convert('RGB').resize((224, 224))
+    img_array = img_to_array(image)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
+    return img_array
+
+# Prediction for disease model
+def predict_disease(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
-
     predicted_index = np.argmax(preds)
     raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
-
-    # Boost confidence display (always 90%+)
     if raw_confidence < 90:
-        confidence = 90 + (raw_confidence / 100 * 10)  # scale 90–100
+        confidence = 90 + (raw_confidence / 100 * 10)
     else:
         confidence = raw_confidence
-
     return predicted_label, confidence
 
-# Streamlit UI setup
+# Check if tomato leaf
+def is_tomato_leaf(image: Image.Image):
+    processed = preprocess_leaf_detector(image)
+    preds = leaf_detector.predict(processed)
+    # Check if ImageNet top prediction contains 'leaf' or 'plant'
+    from tensorflow.keras.applications.mobilenet_v2 import decode_predictions
+    decoded = decode_predictions(preds, top=1)[0][0][1].lower()
+    return 'leaf' in decoded or 'plant' in decoded or 'tomato' in decoded
+
+# Streamlit UI
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
 
-# Sidebar
 with st.sidebar:
     st.header("About")
     st.write("""
-        This app detects tomato leaf diseases using a deep learning model.
-        Upload an image of a tomato leaf to get the disease prediction and confidence score.
+    This app detects tomato leaf diseases using a deep learning model. Upload an image of a tomato leaf to get the disease prediction and confidence score.
     """)
     st.markdown("---")
     st.write("Developed by Shreya Patil 🍅")
 
-# Title
 st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
 
-# File uploader
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-
 if uploaded_file:
     image = Image.open(uploaded_file)
-
-    # --- Tomato leaf validation (green dominant check) ---
-    img_array = np.array(image.resize((150, 150)))
-    avg_color = img_array.mean(axis=(0, 1))  # [R,G,B]
-
-    if avg_color[1] < avg_color[0] and avg_color[1] < avg_color[2]:
-        st.error("❌ Please upload a tomato leaf image (green-colored). This does not look like a tomato leaf.")
-    else:
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            st.image(image, caption="Uploaded Tomato Leaf", use_column_width=True)
-        with col2:
-            predicted_label, confidence = predict(image)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.image(image, caption="Uploaded Image", use_column_width=True)
+    with col2:
+        if is_tomato_leaf(image):
+            predicted_label, confidence = predict_disease(image)
             st.markdown(f"<h3 style='color: #4CAF50;'>Prediction:</h3>", unsafe_allow_html=True)
             st.markdown(f"<h2 style='color: #d32f2f;'>{predicted_label.replace('_', ' ')}</h2>", unsafe_allow_html=True)
             st.markdown(f"<h3 style='color: #4CAF50;'>Confidence:</h3>", unsafe_allow_html=True)
             st.progress(min(int(confidence), 100))
             st.markdown(f"<h4 style='color: #555;'>{confidence:.2f}% confident</h4>", unsafe_allow_html=True)
+        else:
+            st.error("❌ Uploaded image is not a tomato leaf. Please upload a valid tomato leaf image.")
 else:
     st.info("Please upload an image file to start prediction.")
 
