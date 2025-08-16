@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.image import img_to_array
 import os
 
 # Set your dataset path here
-DATASET_FOLDER = r"C:\Users\shrey\OneDrive\Desktop\PlantVillage"
+DATASET_FOLDER = r"C:\Users\shrey\Downloads\New folder\PlantVillage"
 
 # Collect all image file paths
 list_of_images = []
@@ -38,3 +38,4 @@ tomato_leaf_feature = np.mean(features_list, axis=0)
 # Save the average feature vector to a .npy file
 np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
 print("✅ tomato_leaf_feature.npy created successfully")
+
