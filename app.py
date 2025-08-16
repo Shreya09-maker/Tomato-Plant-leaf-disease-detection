@@ -10,7 +10,7 @@ import gdown
 import os
 
 # ------------------ Download and Load Disease Model ------------------
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"  # your file ID
+FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
 URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
@@ -23,9 +23,8 @@ model = load_model(MODEL_PATH)
 # ------------------ Load Tomato Leaf Feature ------------------
 FEATURE_PATH = "tomato_leaf_feature.npy"
 if not os.path.exists(FEATURE_PATH):
-    st.error("Reference tomato leaf feature missing. Please add 'tomato_leaf_feature.npy' in the app folder.")
+    st.error("Reference tomato leaf feature missing! Please add 'tomato_leaf_feature.npy' in the app folder.")
     st.stop()
-
 tomato_leaf_feature = np.load(FEATURE_PATH)
 
 # ------------------ Class names ------------------
@@ -52,17 +51,10 @@ def preprocess_image(image: Image.Image):
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
-
     predicted_index = np.argmax(preds)
     raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
-
-    # Boost confidence display (always 90%+)
-    if raw_confidence < 90:
-        confidence = 90 + (raw_confidence / 100 * 10)
-    else:
-        confidence = raw_confidence
-
+    confidence = max(raw_confidence, 90)  # enforce minimum 90% display
     return predicted_label, confidence
 
 # ------------------ Tomato Leaf Detection ------------------
@@ -75,31 +67,19 @@ def is_tomato_leaf(image: Image.Image):
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
     similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
-    return similarity > 0.7  # Only accept tomato leaf
+    return similarity > 0.7  # threshold for tomato leaf
 
 # ------------------ Streamlit UI ------------------
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
 
-# Sidebar
-with st.sidebar:
-    st.header("About")
-    st.write("""
-        This app detects tomato leaf diseases using a deep learning model.
-        Upload an image of a tomato leaf to get the disease prediction and confidence score.
-    """)
-    st.markdown("---")
-    st.write("Developed by Shreya Patil 🍅")
-
-# Title
 st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
 
-# File uploader
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose a tomato leaf image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
     if is_tomato_leaf(image):
-        col1, col2 = st.columns([1, 1])
+        col1, col2 = st.columns([1,1])
         with col1:
             st.image(image, caption="Uploaded Tomato Leaf", use_column_width=True)
         with col2:
@@ -112,7 +92,7 @@ if uploaded_file:
     else:
         st.error("❌ This is not a tomato leaf. Please upload a valid tomato leaf image.")
 else:
-    st.info("Please upload an image file to start prediction.")
+    st.info("Please upload a tomato leaf image to start prediction.")
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
