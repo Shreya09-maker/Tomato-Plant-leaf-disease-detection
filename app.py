@@ -74,20 +74,25 @@ with st.sidebar:
 st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
 
 # File uploader
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose a tomato leaf image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-    with col2:
-        predicted_label, confidence = predict(image)
-        st.markdown(f"<h3 style='color: #4CAF50;'>Prediction:</h3>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='color: #d32f2f;'>{predicted_label.replace('_', ' ')}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<h3 style='color: #4CAF50;'>Confidence:</h3>", unsafe_allow_html=True)
-        st.progress(min(int(confidence), 100))
-        st.markdown(f"<h4 style='color: #555;'>{confidence:.2f}% confident</h4>", unsafe_allow_html=True)
+    predicted_label, confidence = predict(image)
+
+    # ✅ Extra check: allow only tomato leaf classes
+    if "Tomato" not in predicted_label:
+        st.error("⚠️ This image does not appear to be a tomato leaf. Please upload a valid tomato leaf image.")
+    else:
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+        with col2:
+            st.markdown(f"<h3 style='color: #4CAF50;'>Prediction:</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color: #d32f2f;'>{predicted_label.replace('_', ' ')}</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color: #4CAF50;'>Confidence:</h3>", unsafe_allow_html=True)
+            st.progress(min(int(confidence), 100))
+            st.markdown(f"<h4 style='color: #555;'>{confidence:.2f}% confident</h4>", unsafe_allow_html=True)
 else:
     st.info("Please upload an image file to start prediction.")
 
