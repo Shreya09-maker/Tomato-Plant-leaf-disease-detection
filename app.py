@@ -5,7 +5,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 
 # Load your trained models (make sure both files are in the same folder as app.py)
-LEAF_MODEL_PATH = "leaf_detector_model.h5"
+LEAF_MODEL_PATH = "train_leaf_detector_model.h5"
 DISEASE_MODEL_PATH = "tomato_model.h5"
 
 leaf_detector = load_model(LEAF_MODEL_PATH)
@@ -105,3 +105,4 @@ else:
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
+
