@@ -23,7 +23,13 @@ if len(list_of_images) == 0:
 # Load MobileNetV2 model without the classification head
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
-features_list = []
+features_list = []# Check if the folder exists before proceeding
+print(f"Checking dataset path: {DATASET_FOLDER}")
+print("Folder exists?", os.path.exists(DATASET_FOLDER))
+
+if not os.path.exists(DATASET_FOLDER):
+    raise FileNotFoundError(f"❌ Dataset folder not found: {DATASET_FOLDER}")
+
 for path in list_of_images:
     img = Image.open(path).convert('RGB').resize((224, 224))
     x = img_to_array(img)
@@ -38,4 +44,5 @@ tomato_leaf_feature = np.mean(features_list, axis=0)
 # Save the average feature vector to a .npy file
 np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
 print("✅ tomato_leaf_feature.npy created successfully")
+
 
