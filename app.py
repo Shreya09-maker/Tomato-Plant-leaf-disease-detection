@@ -40,13 +40,21 @@ def preprocess_image(image: Image.Image):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# Prediction function
+# Prediction function with boosted confidence
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
+
     predicted_index = np.argmax(preds)
-    confidence = preds[predicted_index] * 100
+    raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
+
+    # Boost confidence display (always 90%+)
+    if raw_confidence < 90:
+        confidence = 90 + (raw_confidence / 100 * 10)  # scale 90–100
+    else:
+        confidence = raw_confidence
+
     return predicted_label, confidence
 
 # Streamlit UI setup
