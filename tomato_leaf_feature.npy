@@ -1,0 +1,33 @@
+from PIL import Image
+import numpy as np
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras.preprocessing.image import img_to_array
+import os
+
+# Path to your tomato leaf dataset
+DATASET_FOLDER = "C:\Users\shrey\OneDrive\Desktop\PlantVillage"  # replace with your path
+
+# Pick the first image as reference
+for root, dirs, files in os.walk(DATASET_FOLDER):
+    for file in files:
+        if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+            SAMPLE_IMAGE_PATH = os.path.join(root, file)
+            break
+    break
+
+# Load MobileNetV2 for feature extraction
+leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
+
+# Load and preprocess sample image
+sample_image = Image.open(SAMPLE_IMAGE_PATH).convert('RGB').resize((224, 224))
+x = img_to_array(sample_image)
+x = np.expand_dims(x, axis=0)
+x = preprocess_input(x)
+
+# Extract feature
+tomato_leaf_feature = leaf_detector.predict(x)[0]
+
+# Save feature to .npy
+np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
+print("✅ 'tomato_leaf_feature.npy' has been created from:", SAMPLE_IMAGE_PATH)
