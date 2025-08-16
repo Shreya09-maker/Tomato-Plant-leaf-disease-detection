@@ -24,10 +24,10 @@ model = load_model(MODEL_PATH)
 # ------------------ Load Tomato Leaf Feature ------------------
 FEATURE_PATH = "tomato_leaf_feature.npy"
 if not os.path.exists(FEATURE_PATH):
-    st.error("Reference tomato leaf feature missing! Please generate 'tomato_leaf_feature.npy' from your dataset.")
+    st.error("Reference tomato leaf feature missing! Please run 'generate_feature_from_dataset.py' first.")
     st.stop()
 
-tomato_leaf_feature = np.load(FEATURE_PATH)
+tomato_leaf_feature = np.load(FEATURE_PATH, allow_pickle=True)
 
 # ------------------ Class Names ------------------
 class_names = [
