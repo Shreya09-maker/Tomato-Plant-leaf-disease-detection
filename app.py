@@ -10,7 +10,7 @@ import os
 
 # === Adjust this path accordingly! ===
 # Use raw string to avoid unicode errors
-DATASET_FOLDER = r"C:\Users\shrey\Downloads\New folder\PlantVillage"
+DATASET_FOLDER = r"C:\\Users\\shrey\\Downloads\\New folder\\PlantVillage"
 # If running remotely, use relative path like DATASET_FOLDER = "PlantVillage"
 
 MODEL_FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
@@ -113,4 +113,5 @@ if uploaded_file:
         st.error("❌ This is not a tomato leaf. Please upload a valid tomato leaf image.")
 else:
     st.info("Please upload a tomato leaf image to start prediction.")
+
 
