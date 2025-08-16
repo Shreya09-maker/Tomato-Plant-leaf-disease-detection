@@ -4,17 +4,25 @@ from PIL import Image
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
+import gdown
+import os
 
-# Load model
+# -------------------------------
+# Load model from Google Drive
+# -------------------------------
+FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"   # your model file ID
+URL = f"https://drive.google.com/uc?id={FILE_ID}"
+MODEL_PATH = "tomato_model.h5"
+
+if not os.path.exists(MODEL_PATH):
+    with st.spinner("Downloading model..."):
+        gdown.download(URL, MODEL_PATH, quiet=False)
+
 model = load_model(MODEL_PATH)
 
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"   # <-- paste your ID
-URL = f"https://drive.google.com/file/d/1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq/view?usp=drive_link={FILE_ID}"
-#/MODEL_PATH = "tomato_model.h5"
-MODEL_PATH = r"C:\Users\shrey\Downloads\New folder\tomato_model.h5"
-
-
-# Class names (match your training exactly!)
+# -------------------------------
+# Class names (match your training)
+# -------------------------------
 class_names = [
     'Tomato___Bacterial_spot',
     'Tomato___Early_blight',
@@ -28,14 +36,18 @@ class_names = [
     'Tomato___healthy'
 ]
 
+# -------------------------------
 # Image preprocessing
+# -------------------------------
 def preprocess_image(image: Image.Image):
     image = image.convert('RGB').resize((150, 150))
     img_array = img_to_array(image).astype('float32') / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
+# -------------------------------
 # Prediction function
+# -------------------------------
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
@@ -44,7 +56,9 @@ def predict(image: Image.Image):
     predicted_label = class_names[predicted_index]
     return predicted_label, confidence
 
+# -------------------------------
 # Streamlit UI setup
+# -------------------------------
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
 
 # Sidebar
@@ -102,7 +116,3 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
-
-
-
-
