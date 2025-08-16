@@ -10,19 +10,17 @@ import uuid
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
-# ------------------ Download and Load Models ------------------
+# ------------------ Download and Load Disease Model ------------------
 FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
 URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
 if not os.path.exists(MODEL_PATH):
-    with st.spinner("Downloading model..."):
+    with st.spinner("Downloading disease model..."):
         gdown.download(URL, MODEL_PATH, quiet=False)
 
-# Load disease model
 model = load_model(MODEL_PATH)
 
-# Tomato leaf classes
 class_names = [
     'Tomato___Bacterial_spot',
     'Tomato___Early_blight',
@@ -43,7 +41,6 @@ def preprocess_image(image: Image.Image):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# Prediction with boosted confidence
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
@@ -57,11 +54,24 @@ def predict(image: Image.Image):
     return predicted_label, confidence
 
 # ------------------ Tomato Leaf Detection ------------------
-# Load MobileNetV2 feature extractor
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
-# Precomputed tomato leaf feature vector (replace with real leaf images for better accuracy)
-tomato_leaf_feature = np.random.rand(1280)  # MobileNetV2 avg pooling output size
+# Compute or load reference tomato leaf feature
+FEATURE_FILE = "tomato_leaf_feature.npy"
+SAMPLE_IMAGE_FILE = "sample_leaf.jpg"  # Add a real tomato leaf image in your folder
+
+if os.path.exists(FEATURE_FILE):
+    tomato_leaf_feature = np.load(FEATURE_FILE)
+else:
+    if not os.path.exists(SAMPLE_IMAGE_FILE):
+        st.error(f"Sample tomato leaf image not found: {SAMPLE_IMAGE_FILE}")
+        st.stop()
+    sample_image = Image.open(SAMPLE_IMAGE_FILE).convert('RGB').resize((224, 224))
+    x = img_to_array(sample_image)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    tomato_leaf_feature = leaf_detector.predict(x)[0]
+    np.save(FEATURE_FILE, tomato_leaf_feature)
 
 def is_tomato_leaf(image: Image.Image):
     image = image.convert('RGB').resize((224, 224))
@@ -69,18 +79,15 @@ def is_tomato_leaf(image: Image.Image):
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
-    # Cosine similarity
     similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
-    return similarity > 0.7  # threshold
+    return similarity > 0.7  # threshold, adjust if needed
 
-# Generate unique ID for uploaded image
 def generate_upload_id():
     return str(uuid.uuid4())
 
 # ------------------ Streamlit UI ------------------
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
 
-# Sidebar
 with st.sidebar:
     st.header("About")
     st.write("""
@@ -89,14 +96,12 @@ with st.sidebar:
     st.markdown("---")
     st.write("Developed by Shreya Patil 🍅")
 
-# Title
 st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
 
-# File uploader
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 if uploaded_file:
     upload_id = generate_upload_id()
-    st.text(f"Upload ID: {upload_id}")  # Display unique ID
+    st.text(f"Upload ID: {upload_id}")
 
     image = Image.open(uploaded_file)
     col1, col2 = st.columns([1, 1])
