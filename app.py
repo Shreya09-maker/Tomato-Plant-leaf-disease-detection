@@ -1,4 +1,5 @@
-# Imports
+# app.py
+# ------------------ Imports ------------------
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -9,25 +10,26 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import os
 
-# ------------------ Download and Load Disease Model ------------------
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
-URL = f"https://drive.google.com/uc?id={FILE_ID}"
+# ------------------ Download & Load Disease Model ------------------
+MODEL_FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"
+MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
 if not os.path.exists(MODEL_PATH):
-    with st.spinner("Downloading model..."):
-        gdown.download(URL, MODEL_PATH, quiet=False)
+    with st.spinner("Downloading disease model..."):
+        gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
 
 model = load_model(MODEL_PATH)
 
 # ------------------ Load Tomato Leaf Feature ------------------
 FEATURE_PATH = "tomato_leaf_feature.npy"
 if not os.path.exists(FEATURE_PATH):
-    st.error("Reference tomato leaf feature missing! Please add 'tomato_leaf_feature.npy' in the app folder.")
+    st.error("Reference tomato leaf feature missing! Please generate 'tomato_leaf_feature.npy' from your dataset.")
     st.stop()
+
 tomato_leaf_feature = np.load(FEATURE_PATH)
 
-# ------------------ Class names ------------------
+# ------------------ Class Names ------------------
 class_names = [
     'Tomato___Bacterial_spot',
     'Tomato___Early_blight',
@@ -41,20 +43,21 @@ class_names = [
     'Tomato___healthy'
 ]
 
-# ------------------ Preprocessing & Prediction ------------------
+# ------------------ Image Preprocessing ------------------
 def preprocess_image(image: Image.Image):
     image = image.convert('RGB').resize((150, 150))
     img_array = img_to_array(image).astype('float32') / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
+# ------------------ Prediction ------------------
 def predict(image: Image.Image):
     processed = preprocess_image(image)
     preds = model.predict(processed)[0]
     predicted_index = np.argmax(preds)
     raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
-    confidence = max(raw_confidence, 90)  # enforce minimum 90% display
+    confidence = max(raw_confidence, 90)  # minimum 90% display
     return predicted_label, confidence
 
 # ------------------ Tomato Leaf Detection ------------------
@@ -71,10 +74,9 @@ def is_tomato_leaf(image: Image.Image):
 
 # ------------------ Streamlit UI ------------------
 st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
-
 st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Choose a tomato leaf image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload a tomato leaf image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
