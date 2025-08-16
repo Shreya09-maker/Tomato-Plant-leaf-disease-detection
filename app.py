@@ -1,4 +1,5 @@
 # app.py
+
 # ------------------ Imports ------------------
 import streamlit as st
 from PIL import Image
@@ -16,7 +17,7 @@ MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
 FEATURE_PATH = "tomato_leaf_feature.npy"
-DATASET_FOLDER = "PlantVillage/Tomato"  # Change to your dataset folder
+DATASET_FOLDER = "C:\Users\shrey\OneDrive\Desktop\PlantVillage"  # Update this if your dataset is elsewhere
 
 # ------------------ Download & Load Disease Model ------------------
 if not os.path.exists(MODEL_PATH):
@@ -25,7 +26,7 @@ if not os.path.exists(MODEL_PATH):
 
 model = load_model(MODEL_PATH)
 
-# ------------------ Generate Tomato Leaf Feature if missing ------------------
+# ------------------ Generate Tomato Leaf Feature if Missing ------------------
 def generate_leaf_feature():
     if not os.path.exists(DATASET_FOLDER):
         st.error(f"Dataset folder not found: {DATASET_FOLDER}")
@@ -36,6 +37,7 @@ def generate_leaf_feature():
         for file in files:
             if file.lower().endswith(('.jpg', '.jpeg', '.png')):
                 list_of_images.append(os.path.join(root, file))
+
     if len(list_of_images) == 0:
         st.error(f"No images found in dataset folder: {DATASET_FOLDER}")
         st.stop()
@@ -43,7 +45,7 @@ def generate_leaf_feature():
     leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
     features_list = []
     for img_path in list_of_images:
-        img = Image.open(img_path).convert('RGB').resize((224,224))
+        img = Image.open(img_path).convert('RGB').resize((224, 224))
         x = img_to_array(img)
         x = np.expand_dims(x, axis=0)
         x = preprocess_input(x)
@@ -53,8 +55,14 @@ def generate_leaf_feature():
     np.save(FEATURE_PATH, tomato_leaf_feature)
     return tomato_leaf_feature
 
+# ------------------ Load or Generate Feature ------------------
 if os.path.exists(FEATURE_PATH):
-    tomato_leaf_feature = np.load(FEATURE_PATH)
+    try:
+        tomato_leaf_feature = np.load(FEATURE_PATH, allow_pickle=False)
+    except Exception as e:
+        st.warning(f"Feature file is corrupted. Regenerating... ({e})")
+        with st.spinner("Regenerating reference tomato leaf feature..."):
+            tomato_leaf_feature = generate_leaf_feature()
 else:
     with st.spinner("Generating reference tomato leaf feature..."):
         tomato_leaf_feature = generate_leaf_feature()
@@ -86,10 +94,10 @@ def predict(image: Image.Image):
     predicted_index = np.argmax(preds)
     raw_confidence = preds[predicted_index] * 100
     predicted_label = class_names[predicted_index]
-    confidence = max(raw_confidence, 90)  # minimum 90% display
+    confidence = max(raw_confidence, 90)  # Always show at least 90%
     return predicted_label, confidence
 
-# ------------------ Tomato Leaf Detection ------------------
+# ------------------ Tomato Leaf Verification ------------------
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
 def is_tomato_leaf(image: Image.Image):
@@ -98,19 +106,29 @@ def is_tomato_leaf(image: Image.Image):
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
-    similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
+    similarity = np.dot(features, tomato_leaf_feature) / (
+        np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature)
+    )
     return similarity > 0.7
 
 # ------------------ Streamlit UI ------------------
-st.set_page_config(page_title="🍅 Tomato Leaf Disease Detector", layout="wide", page_icon="🍅")
-st.markdown("<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>", unsafe_allow_html=True)
+st.set_page_config(
+    page_title="🍅 Tomato Leaf Disease Detector",
+    layout="wide",
+    page_icon="🍅"
+)
+
+st.markdown(
+    "<h1 style='text-align: center; color: green;'>🍅 Tomato Leaf Disease Detector</h1>",
+    unsafe_allow_html=True
+)
 
 uploaded_file = st.file_uploader("Upload a tomato leaf image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
     if is_tomato_leaf(image):
-        col1, col2 = st.columns([1,1])
+        col1, col2 = st.columns([1, 1])
         with col1:
             st.image(image, caption="Uploaded Tomato Leaf", use_column_width=True)
         with col2:
@@ -126,4 +144,7 @@ else:
     st.info("Please upload a tomato leaf image to start prediction.")
 
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
+st.markdown(
+    "<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>",
+    unsafe_allow_html=True
+)
