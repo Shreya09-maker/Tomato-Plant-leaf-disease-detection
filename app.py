@@ -11,7 +11,7 @@ import uuid
 import gdown
 
 # ------------------ Download and Load Disease Model ------------------
-FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"  # your Google Drive file ID
+FILE_ID = "1VE7RUXKh4GupqdivjHqX_5bT6xz2z8lq"  # Google Drive file ID
 URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
@@ -53,20 +53,12 @@ def predict(image: Image.Image):
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
 FEATURE_FILE = "tomato_leaf_feature.npy"
-SAMPLE_IMAGE_FILE = "sample_leaf.jpg"  # Add a real tomato leaf image
 
-if os.path.exists(FEATURE_FILE):
-    tomato_leaf_feature = np.load(FEATURE_FILE)
-else:
-    if not os.path.exists(SAMPLE_IMAGE_FILE):
-        st.error(f"Sample tomato leaf image not found: {SAMPLE_IMAGE_FILE}")
-        st.stop()
-    sample_image = Image.open(SAMPLE_IMAGE_FILE).convert('RGB').resize((224, 224))
-    x = img_to_array(sample_image)
-    x = np.expand_dims(x, axis=0)
-    x = preprocess_input(x)
-    tomato_leaf_feature = leaf_detector.predict(x)[0]
-    np.save(FEATURE_FILE, tomato_leaf_feature)
+if not os.path.exists(FEATURE_FILE):
+    st.error("Reference tomato leaf feature missing. Add 'tomato_leaf_feature.npy' in the app folder.")
+    st.stop()
+
+tomato_leaf_feature = np.load(FEATURE_FILE)
 
 def is_tomato_leaf(image: Image.Image):
     image = image.convert('RGB').resize((224, 224))
@@ -75,10 +67,10 @@ def is_tomato_leaf(image: Image.Image):
     x = preprocess_input(x)
     features = leaf_detector.predict(x)[0]
     similarity = np.dot(features, tomato_leaf_feature) / (np.linalg.norm(features) * np.linalg.norm(tomato_leaf_feature))
-    return similarity > 0.7
+    return similarity > 0.7  # Only accept tomato leaf
 
 # ------------------ Dataset vs Live Detection ------------------
-DATASET_FOLDER = "PlantVillage/Tomato"  # Change this path to your dataset folder
+DATASET_FOLDER = "PlantVillage/Tomato"  # Adjust your dataset path
 
 def detect_image_source(image: Image.Image):
     uploaded_array = np.array(image.convert('RGB').resize((150, 150)))
@@ -115,12 +107,4 @@ if uploaded_file:
         predicted_label, confidence = predict(image)
         st.markdown(f"### Prediction: **{predicted_label.replace('_', ' ')}**")
         st.progress(min(int(confidence), 100))
-        st.markdown(f"#### Confidence: {confidence:.2f}%")
-        st.markdown(f"#### Source: {source}")
-    else:
-        st.error("❌ This is not a tomato leaf. Please upload a valid tomato leaf image.")
-else:
-    st.info("Please upload a tomato leaf image to start prediction.")
-
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>", unsafe_allow_html=True)
+        s
