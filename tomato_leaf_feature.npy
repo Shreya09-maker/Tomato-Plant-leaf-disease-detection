@@ -1,3 +1,4 @@
+# generate_feature_from_dataset.py
 from PIL import Image
 import numpy as np
 from tensorflow.keras.applications import MobileNetV2
@@ -5,10 +6,9 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 import os
 
-# Path to your tomato leaf dataset
-DATASET_FOLDER = "PlantVillage/Tomato"  # Change to your folder
+DATASET_FOLDER = "PlantVillage/Tomato"  # your dataset folder
 
-# Collect all image paths
+# Gather image paths
 list_of_images = []
 for root, dirs, files in os.walk(DATASET_FOLDER):
     for file in files:
@@ -18,15 +18,11 @@ for root, dirs, files in os.walk(DATASET_FOLDER):
 if len(list_of_images) == 0:
     raise ValueError(f"No images found in {DATASET_FOLDER}")
 
-print(f"Found {len(list_of_images)} images in dataset.")
-
-# Load MobileNetV2 for feature extraction
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
-# Extract features
 features_list = []
-for img_path in list_of_images:
-    img = Image.open(img_path).convert('RGB').resize((224,224))
+for path in list_of_images:
+    img = Image.open(path).convert('RGB').resize((224,224))
     x = img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
@@ -35,6 +31,6 @@ for img_path in list_of_images:
 # Average features
 tomato_leaf_feature = np.mean(features_list, axis=0)
 
-# Save as proper NumPy array
+# Save as proper NumPy array (no pickling)
 np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
-print("✅ 'tomato_leaf_feature.npy' has been successfully created.")
+print("✅ tomato_leaf_feature.npy created successfully")
