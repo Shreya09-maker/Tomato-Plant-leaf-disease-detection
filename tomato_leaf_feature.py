@@ -7,11 +7,10 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 import os
 
-# Set your dataset path
+# Set your dataset path here
 DATASET_FOLDER = r"C:\Users\shrey\OneDrive\Desktop\PlantVillage"
 
-
-# Collect image paths
+# Collect all image file paths
 list_of_images = []
 for root, dirs, files in os.walk(DATASET_FOLDER):
     for file in files:
@@ -21,7 +20,7 @@ for root, dirs, files in os.walk(DATASET_FOLDER):
 if len(list_of_images) == 0:
     raise ValueError(f"No images found in {DATASET_FOLDER}")
 
-# Load MobileNetV2 without top layer
+# Load MobileNetV2 model without the classification head
 leaf_detector = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
 
 features_list = []
@@ -30,14 +29,12 @@ for path in list_of_images:
     x = img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
-    features_list.append(leaf_detector.predict(x)[0])  # Extract features
+    features = leaf_detector.predict(x)[0]
+    features_list.append(features)
 
-# Average the features
+# Average all features to create a single vector
 tomato_leaf_feature = np.mean(features_list, axis=0)
 
-# Save to file (no pickle)
+# Save the average feature vector to a .npy file
 np.save("tomato_leaf_feature.npy", tomato_leaf_feature)
 print("✅ tomato_leaf_feature.npy created successfully")
-
-
-
