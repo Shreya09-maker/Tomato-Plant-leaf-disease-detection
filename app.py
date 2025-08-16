@@ -17,7 +17,8 @@ MODEL_URL = f"https://drive.google.com/uc?id={MODEL_FILE_ID}"
 MODEL_PATH = "tomato_model.h5"
 
 FEATURE_PATH = "tomato_leaf_feature.npy"
-DATASET_FOLDER = "C:\Users\shrey\OneDrive\Desktop\PlantVillage"  # Update this if your dataset is elsewhere
+DATASET_FOLDER =  r"C:\Users\shrey\OneDrive\Desktop\PlantVillage"
+"  # Update this if your dataset is elsewhere
 
 # ------------------ Download & Load Disease Model ------------------
 if not os.path.exists(MODEL_PATH):
@@ -148,3 +149,4 @@ st.markdown(
     "<p style='text-align: center; color: gray;'>© 2025 Tomato Leaf Disease Detector | Powered by TensorFlow & Streamlit 🍅</p>",
     unsafe_allow_html=True
 )
+
